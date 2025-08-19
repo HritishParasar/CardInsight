@@ -34,11 +34,15 @@ namespace CardInsight.API.Repositories
 
         public async Task<List<CreditCard>> GetCreditCard(string? search, string? category)
         {
+            if (string.IsNullOrEmpty(search) && string.IsNullOrEmpty(category))
+            {
+                return new List<CreditCard>();
+            }
             var creditard = dbContext.CreditCards.AsQueryable();
             if(!string.IsNullOrEmpty(search)) 
-                creditard = creditard.Where(c => c.Name.Contains(search));
+                creditard = creditard.Where(c => c.Name.ToLower().Contains(search.ToLower()));
             if(!string.IsNullOrEmpty(category))
-                creditard = creditard.Where( c => c.Category == category);
+                creditard = creditard.Where( c => c.Category.ToLower() == category.ToLower());
             return await creditard.ToListAsync();
         }
 

@@ -1,6 +1,9 @@
-using CardInsight.API.Data;
+﻿using CardInsight.API.Data;
+using CardInsight.API.Helpers;
+using CardInsight.API.Models;
 using CardInsight.API.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -40,9 +43,31 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlConnection"));
 });
 builder.Services.AddScoped<ICreditCard,CreditCardRepository>();
+builder.Services.AddScoped<IJwtHelper,JwtHelper>();
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 var app = builder.Build();
 
+//add default admin role
+using(var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.EnsureCreated();
+
+    if(!db.Users.Any(u => u.Role == "Admin"))
+    {
+        var admin = new User
+        {
+            UserName = "admin",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"), // Default password
+            Role = "Admin"
+        };
+
+        db.Users.Add(admin);
+        db.SaveChanges();
+        Console.WriteLine("✅ Default Admin user created (username: admin, password: Admin@123)");
+    }
+}
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
